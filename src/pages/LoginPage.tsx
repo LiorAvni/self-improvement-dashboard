@@ -7,7 +7,7 @@ import { Input } from '../components/ui/Input';
 
 export function LoginPage() {
   const { authenticated, login } = useAuth();
-  const [username, setUsername] = useState('john');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
@@ -33,7 +33,6 @@ export function LoginPage() {
           {error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-200">{error}</p> : null}
           <Button className="w-full" type="submit">Enter dashboard</Button>
         </form>
-        <p className="mt-5 text-xs text-muted">Default username: <strong>john</strong>. Default password: <strong>123</strong>. Change them in <code>src/config/auth.ts</code>.</p>
       </Card>
     </div>
   );
