@@ -44,13 +44,13 @@ src/config/auth.ts
 Default username:
 
 ```txt
-john
+<secret>
 ```
 
 Default password:
 
 ```txt
-123
+<secret>
 ```
 
 Change those values before deploying if you want different credentials.
@@ -93,8 +93,8 @@ http://localhost:5173
 Login with:
 
 ```txt
-username: john
-password: 123
+username: <secret>
+password: <secret>
 ```
 
 ## Build locally
