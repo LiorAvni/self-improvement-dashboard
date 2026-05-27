@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer } from 'react
 import type { AppState, AppStateAction, Habit } from '../types';
 import { createDefaultState } from '../data/defaultState';
 import { loadState, saveState } from '../lib/storage';
+import { isFutureDateKey } from '../lib/dates';
 
 function makeId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}-${Date.now().toString(36)}`;
@@ -15,6 +16,7 @@ function touch(state: AppState): AppState {
 function reducer(state: AppState, action: AppStateAction): AppState {
   switch (action.type) {
     case 'TOGGLE_HABIT_ENTRY': {
+      if (isFutureDateKey(action.date)) return state;
       const existing = state.entries[action.date] ?? { habits: {} };
       const current = Boolean(existing.habits[action.habitId]);
       return touch({

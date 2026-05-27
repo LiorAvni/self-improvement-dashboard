@@ -2,6 +2,8 @@
 
 A private, local-first dashboard for tracking a 6-month self-improvement project: habits, workouts, sleep, study consistency, nutrition consistency, notes, and progress trends.
 
+This project is designed to be simple to edit, free to deploy, and easy to upload to GitHub + Vercel.
+
 ## Tech stack
 
 - React
@@ -17,10 +19,14 @@ A private, local-first dashboard for tracking a 6-month self-improvement project
 
 - Dashboard page with today, weekly, and monthly progress stats
 - Calendar-style weekly tracker: days as columns and habits as rows
+- Automatic current-date highlighting in the tracker
+- Future tracker days are locked and cannot be checked early
 - Default habits and custom habit creation/deletion
-- Workout plan page with 6-month phases and workout templates
-- Nutrition plan page with realistic meal options
-- General info page with lifestyle, sleep, training, nutrition, and safety notes
+- Expanded workout plan page divided by Month 1 through Month 6
+- Each month includes the best weekly split, exact day-by-day workout division, progression rules, deload rules, tracking focus, and safety notes
+- Detailed workout templates with warm-up, exercises, sets, reps/time, rest, form cues, regressions, progressions, and stop rules
+- Nutrition plan page with realistic meal options based on familiar foods
+- General info page with lifestyle, sleep, training, tracking, nutrition, and safety principles
 - Settings page for theme, accent color, backup/export/import, reset, and logout
 - Simple username/password gate
 - Responsive layout for desktop, laptop, tablet, and phone
@@ -102,9 +108,34 @@ npm run preview
 
 1. Create a new GitHub repository under your personal GitHub account.
 2. Extract this project ZIP.
-3. Upload all files to the repository.
-4. Do not upload `node_modules`, `dist`, `.vercel`, or `.env` files.
-5. Commit the files.
+3. Upload the project files to the repository.
+4. Make sure `package.json` is at the top level of the repository.
+5. Do **not** upload `node_modules`, `dist`, `.vercel`, `.env`, or `tsconfig.tsbuildinfo`.
+6. This ZIP intentionally does not include `package-lock.json`; Vercel can install from `package.json`.
+7. Commit the files.
+
+Your repository should look like this:
+
+```txt
+repository/
+├── src/
+├── index.html
+├── package.json
+├── tsconfig.json
+├── vercel.json
+├── vite.config.ts
+├── README.md
+└── .gitignore
+```
+
+It should **not** look like this:
+
+```txt
+repository/
+└── self-improvement-dashboard/
+    ├── package.json
+    └── src/
+```
 
 ## Deploy to Vercel
 
@@ -112,19 +143,27 @@ npm run preview
 2. Click **New Project**.
 3. Import your GitHub repository.
 4. Vercel should detect Vite automatically.
-5. Build command:
+5. Use these settings if Vercel asks:
+
+Build command:
 
 ```bash
 npm run build
 ```
 
-6. Output directory:
+Install command:
+
+```bash
+npm install
+```
+
+Output directory:
 
 ```txt
 dist
 ```
 
-7. Deploy.
+6. Deploy.
 
 The included `vercel.json` rewrites all routes to `index.html`, which prevents refresh errors on client-side routes such as `/tracker` or `/settings`.
 
@@ -142,7 +181,7 @@ Default habits cannot be deleted from the UI to prevent accidental removal. Cust
 
 ## Customize workout content
 
-Workout phases and templates are in:
+Workout phases, exact weekly divisions, monthly notes, safety rules, and exercise templates are in:
 
 ```txt
 src/data/workoutPlan.ts

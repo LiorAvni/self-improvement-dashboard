@@ -36,7 +36,10 @@ html[data-accent="slate"] { --accent: 71 85 105; }
 html, body, #root { min-height: 100%; }
 body {
   margin: 0;
-  background: rgb(var(--bg));
+  background:
+    radial-gradient(circle at top left, rgba(var(--accent), 0.10), transparent 32rem),
+    radial-gradient(circle at 85% 5%, rgba(var(--accent), 0.06), transparent 28rem),
+    rgb(var(--bg));
   color: rgb(var(--text));
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -64,10 +67,41 @@ a { color: inherit; text-decoration: none; }
   outline-offset: 2px;
 }
 
-.card-shadow { box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }
-html[data-theme="dark"] .card-shadow { box-shadow: 0 10px 35px rgba(0, 0, 0, 0.25); }
+.card-shadow { box-shadow: 0 14px 40px rgba(15, 23, 42, 0.065); }
+html[data-theme="dark"] .card-shadow { box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28); }
+
+.hero-panel {
+  background:
+    linear-gradient(135deg, rgba(var(--accent), 0.08), rgba(var(--surface), 0.96) 34%, rgb(var(--surface)) 100%);
+}
+html[data-theme="dark"] .hero-panel {
+  background:
+    linear-gradient(135deg, rgba(var(--accent), 0.16), rgba(var(--surface), 0.96) 36%, rgb(var(--surface)) 100%);
+}
 
 .tracker-cell {
-  transition: transform .12s ease, background .12s ease, border-color .12s ease;
+  transition: transform .12s ease, background .12s ease, border-color .12s ease, opacity .12s ease;
 }
-.tracker-cell:hover { transform: translateY(-1px); }
+.tracker-cell:hover:not(:disabled) { transform: translateY(-1px); }
+.tracker-cell:disabled { cursor: not-allowed; transform: none; }
+
+.tracker-table-wrap {
+  background: rgb(var(--surface));
+}
+
+.today-header {
+  box-shadow: inset 0 3px 0 rgb(var(--accent));
+  background: rgba(var(--accent), 0.08);
+}
+.today-cell-bg { background: rgba(var(--accent), 0.04); }
+.future-header, .future-cell-bg { background: rgba(148, 163, 184, 0.08); }
+.today-pill { background: rgba(var(--accent), 0.12); color: rgb(var(--accent)); }
+.future-pill { background: rgba(148, 163, 184, 0.16); color: rgb(var(--muted)); }
+
+.prose-mini p { margin-bottom: 0.75rem; line-height: 1.75; }
+.prose-mini ul { list-style: disc; padding-left: 1.25rem; }
+.prose-mini li { margin: 0.35rem 0; }
+
+@media (max-width: 640px) {
+  .card-shadow { box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05); }
+}
