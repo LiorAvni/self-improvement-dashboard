@@ -1,0 +1,69 @@
+import type { AppState, Habit } from '../types';
+import { addDays, getMonthDateKeys, getWeekDates, parseDateKey, todayKey, toDateKey } from './dates';
+
+export function activeHabits(state: AppState): Habit[] {
+  return state.habits.filter((habit) => !habit.archived);
+}
+
+export function completionForDate(state: AppState, dateKey: string): { done: number; total: number; percent: number } {
+  const habits = activeHabits(state);
+  const entry = state.entries[dateKey];
+  const done = habits.reduce((sum, habit) => sum + (entry?.habits?.[habit.id] ? 1 : 0), 0);
+  const total = habits.length;
+  return { done, total, percent: total ? Math.round((done / total) * 100) : 0 };
+}
+
+export function completionForDates(state: AppState, dateKeys: string[]): { done: number; total: number; percent: number } {
+  const habits = activeHabits(state);
+  const total = habits.length * dateKeys.length;
+  const done = dateKeys.reduce((sum, dateKey) => {
+    const entry = state.entries[dateKey];
+    return sum + habits.reduce((inner, habit) => inner + (entry?.habits?.[habit.id] ? 1 : 0), 0);
+  }, 0);
+  return { done, total, percent: total ? Math.round((done / total) * 100) : 0 };
+}
+
+export function weekCompletion(state: AppState, base = new Date()) {
+  return completionForDates(state, getWeekDates(base).map(toDateKey));
+}
+
+export function monthCompletion(state: AppState, base = new Date()) {
+  return completionForDates(state, getMonthDateKeys(base));
+}
+
+export function habitStreak(state: AppState, habitId: string): number {
+  let streak = 0;
+  let date = parseDateKey(todayKey());
+  while (true) {
+    const key = toDateKey(date);
+    if (state.entries[key]?.habits?.[habitId]) {
+      streak += 1;
+      date = addDays(date, -1);
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+export function bestHabitStreak(state: AppState): { habitName: string; streak: number } {
+  const habits = activeHabits(state);
+  const results = habits.map((habit) => ({ habitName: habit.name, streak: habitStreak(state, habit.id) }));
+  return results.sort((a, b) => b.streak - a.streak)[0] ?? { habitName: 'No habits yet', streak: 0 };
+}
+
+export function workoutCountThisWeek(state: AppState): number {
+  const weekKeys = new Set(getWeekDates(new Date()).map(toDateKey));
+  return Object.entries(state.workoutCompletions).filter(([key, value]) => {
+    const datePart = key.split(':')[0];
+    return weekKeys.has(datePart) && value.completed;
+  }).length;
+}
+
+export function categoryCompletionToday(state: AppState, category: Habit['category']): number {
+  const habits = activeHabits(state).filter((habit) => habit.category === category);
+  if (!habits.length) return 0;
+  const entry = state.entries[todayKey()];
+  const done = habits.reduce((sum, habit) => sum + (entry?.habits?.[habit.id] ? 1 : 0), 0);
+  return Math.round((done / habits.length) * 100);
+}
