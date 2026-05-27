@@ -78,8 +78,6 @@ export function SettingsPage() {
       <Card>
         <CardTitle title="Login/privacy" subtitle="Version 1 uses a simple client-side gate only." />
         <div className="space-y-3 text-sm text-muted">
-          <p>The default username is <strong className="text-main">john</strong> and the default password is <strong className="text-main">123</strong>.</p>
-          <p>Change them in <code className="rounded app-surface-soft px-1 py-0.5">src/config/auth.ts</code>. This is not real secure authentication because the app is frontend-only and the code can be inspected.</p>
           <p>For real multi-device private login later, add a backend such as Supabase Auth. Version 1 intentionally avoids that complexity.</p>
         </div>
         <Button className="mt-4" variant="secondary" onClick={logout}>Log out</Button>
