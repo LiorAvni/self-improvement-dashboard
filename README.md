@@ -27,7 +27,7 @@ The project is designed for GitHub + Vercel deployment and Supabase cloud storag
 - Automatic current-date highlighting in the tracker
 - Future tracker days are locked and cannot be checked early
 - Default habits and custom habit creation/deletion
-- Expanded workout plan page divided by Month 1 through Month 6, with Month 1 = June 2026 and the corrected schedule logic: school until June 20, summer from June 20 through August 31, old university through September 10, and the new university semester starting October 25
+- Expanded workout plan page divided by Month 1 through Month 6, with Month 1 = June 2026 and the corrected schedule logic: school + old university until June 19, no school/no university from June 20 through July 11, summer university from July 12 through September 10, no university from September 11 through October 24, and the new university semester starting October 25
 - Each month includes the best weekly split, exact day-by-day workout division, progression rules, deload rules, tracking focus, and safety notes
 - Workout names in weekly tables jump to the matching workout template
 - Today's workout can be marked complete from the workout page, and it syncs with the Workout checkbox in the tracker
@@ -240,9 +240,11 @@ The app assumes the six-month project starts on **June 1, 2026**:
 
 Corrected schedule assumptions used by the workout logic:
 
-- June 1–19: school schedule.
-- June 20–August 31: summer schedule.
-- The old summer university schedule continues until September 10.
+- June 1–19: school schedule with the old university evenings still running.
+- June 20–July 11: open summer with no school and no university at all, except Sunday piano.
+- July 12–August 31: summer schedule with university on Monday, Tuesday, and Wednesday.
+- September 1–10: school is assumed to restart and the summer university schedule still continues.
+- September 11–October 24: school-only estimate with no university at all.
 - School is assumed to restart in September, with exact hours unknown.
 - The new university semester is assumed to begin October 25 and continue into January, with probably three evening course blocks.
 
