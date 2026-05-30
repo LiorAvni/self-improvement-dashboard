@@ -1,44 +1,9 @@
 import type { AppState } from '../types';
-import { createDefaultState, defaultHabits } from '../data/defaultState';
+import { createDefaultState } from '../data/defaultState';
+import { supabase } from './supabaseClient';
 
 export const STORAGE_KEY = 'six-month-dashboard:v1';
-
-function normalizeState(value: AppState): AppState {
-  const base = createDefaultState();
-  const defaultIds = new Set(defaultHabits.map((habit) => habit.id));
-  const customHabits = (value.habits ?? []).filter((habit) => !habit.isDefault && !defaultIds.has(habit.id));
-
-  return {
-    ...base,
-    ...value,
-    settings: { ...base.settings, ...value.settings },
-    habits: [...defaultHabits, ...customHabits],
-    entries: value.entries ?? {},
-    workoutCompletions: value.workoutCompletions ?? {},
-    quickNotes: typeof value.quickNotes === 'string' ? value.quickNotes : base.quickNotes,
-  };
-}
-
-export function loadState(): AppState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return createDefaultState();
-    const parsed = JSON.parse(raw) as AppState;
-    if (parsed.schemaVersion !== 1) return createDefaultState();
-    return normalizeState(parsed);
-  } catch (error) {
-    console.warn('Could not load saved dashboard state. Using defaults.', error);
-    return createDefaultState();
-  }
-}
-
-export function saveState(state: AppState): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, updatedAt: new Date().toISOString() }));
-  } catch (error) {
-    console.error('Could not save dashboard state.', error);
-  }
-}
+const DASHBOARD_TABLE = 'dashboard_states';
 
 export function validateImportedState(value: unknown): AppState {
   if (!value || typeof value !== 'object') throw new Error('Backup file is not an object.');
@@ -47,7 +12,61 @@ export function validateImportedState(value: unknown): AppState {
   if (!Array.isArray(maybe.habits)) throw new Error('Backup is missing habits.');
   if (!maybe.settings || typeof maybe.settings !== 'object') throw new Error('Backup is missing settings.');
   if (!maybe.entries || typeof maybe.entries !== 'object') throw new Error('Backup is missing entries.');
-  return normalizeState(maybe as AppState);
+  return maybe as AppState;
+}
+
+export function loadLocalState(): AppState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return createDefaultState();
+    return validateImportedState(JSON.parse(raw));
+  } catch (error) {
+    console.warn('Could not load saved local dashboard state. Using defaults.', error);
+    return createDefaultState();
+  }
+}
+
+export function saveLocalState(state: AppState): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, updatedAt: new Date().toISOString() }));
+  } catch (error) {
+    console.error('Could not save local dashboard state.', error);
+  }
+}
+
+// Backward-compatible names used by older code.
+export const loadState = loadLocalState;
+export const saveState = saveLocalState;
+
+export async function loadCloudState(userId: string): Promise<AppState | null> {
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from(DASHBOARD_TABLE)
+    .select('state')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.state) return null;
+  return validateImportedState(data.state);
+}
+
+export async function saveCloudState(userId: string, state: AppState): Promise<void> {
+  if (!supabase) return;
+
+  const { error } = await supabase
+    .from(DASHBOARD_TABLE)
+    .upsert(
+      {
+        user_id: userId,
+        state: { ...state, updatedAt: new Date().toISOString() },
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' },
+    );
+
+  if (error) throw error;
 }
 
 export function downloadBackup(state: AppState): void {

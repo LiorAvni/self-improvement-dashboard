@@ -24,7 +24,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="mb-8">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl accent-bg font-bold text-white shadow-lg">6M</div>
           <h1 className="text-xl font-bold text-main">{state.settings.dashboardName}</h1>
-          <p className="mt-1 text-sm text-muted">Private local-first tracker</p>
+          <p className="mt-1 text-sm text-muted">Private cloud-synced tracker</p>
         </div>
 
         <div className="mb-6 rounded-3xl app-surface-soft p-4">

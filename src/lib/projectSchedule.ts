@@ -33,8 +33,13 @@ export function getActiveWeeklyDaysForDate(date = new Date()): MonthTrainingDay[
   const plan = getCurrentMonthPlan(date);
   const key = toDateKey(date);
 
-  // Month 2 (July) is a hybrid month. The subject has school until July 20, then summer schedule.
-  if (plan.month === 2 && key >= '2026-07-20' && plan.weeklyAlternates?.[0]) {
+  // Month 1 is a real hybrid: June 1–19 is school time, then summer starts on June 20.
+  if (plan.month === 1 && key >= '2026-06-20' && plan.weeklyAlternates?.[0]) {
+    return plan.weeklyAlternates[0].weeklyDays;
+  }
+
+  // Month 4 is also a transition: September 1–10 still has the old university schedule.
+  if (plan.month === 4 && key <= '2026-09-10' && plan.weeklyAlternates?.[0]) {
     return plan.weeklyAlternates[0].weeklyDays;
   }
 

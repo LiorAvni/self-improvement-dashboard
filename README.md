@@ -1,8 +1,8 @@
 # Six-Month Self-Improvement Dashboard
 
-A private, local-first dashboard for tracking a 6-month self-improvement project: habits, workouts, sleep, study consistency, nutrition consistency, notes, and progress trends.
+A private, cloud-synced dashboard for tracking a 6-month self-improvement project: habits, workouts, sleep, study consistency, nutrition consistency, notes, and progress trends.
 
-This project is designed to be simple to edit, free to deploy, and easy to upload to GitHub + Vercel.
+The project is designed for GitHub + Vercel deployment and Supabase cloud storage. Use the same Supabase email/password on every device to see the same data.
 
 ## Tech stack
 
@@ -11,7 +11,9 @@ This project is designed to be simple to edit, free to deploy, and easy to uploa
 - TypeScript
 - React Router
 - Tailwind CSS via the Vite plugin
-- Browser `localStorage` for data persistence
+- Supabase Auth for email/password login
+- Supabase PostgreSQL table with Row Level Security for cloud data
+- Browser localStorage as a fallback/cache
 - JSON export/import for backups
 - Vercel-compatible static deployment
 
@@ -25,60 +27,103 @@ This project is designed to be simple to edit, free to deploy, and easy to uploa
 - Automatic current-date highlighting in the tracker
 - Future tracker days are locked and cannot be checked early
 - Default habits and custom habit creation/deletion
-- Expanded workout plan page divided by Month 1 through Month 6, with Month 1 = June 2026 and Month 3 = August summer schedule
+- Expanded workout plan page divided by Month 1 through Month 6, with Month 1 = June 2026 and the corrected schedule logic: school until June 20, summer from June 20 through August 31, old university through September 10, and the new university semester starting October 25
 - Each month includes the best weekly split, exact day-by-day workout division, progression rules, deload rules, tracking focus, and safety notes
 - Workout names in weekly tables jump to the matching workout template
 - Today's workout can be marked complete from the workout page, and it syncs with the Workout checkbox in the tracker
 - Detailed workout templates with warm-up, exercises, sets, reps/time, rest, form cues, regressions, progressions, and stop rules
 - Nutrition plan page with realistic meal options based on familiar foods
 - General info page with lifestyle, sleep, training, tracking, nutrition, and safety principles
-- Settings page for theme, accent color, backup/export/import, reset, and logout
-- Simple username/password gate
+- Settings page for theme, accent color, cloud sync status, backup/export/import, reset, and logout
 - Responsive layout for desktop, laptop, tablet, and phone
 
-## Important privacy note
+## Supabase setup
 
-This version is frontend-only. It uses a simple client-side gate for personal use.
+This app expects a Supabase table called `dashboard_states`.
 
-Default credentials are stored in:
+Run this SQL in Supabase SQL Editor:
 
-```txt
-src/config/auth.ts
+```sql
+create table if not exists public.dashboard_states (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  state jsonb not null default '{}'::jsonb,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.dashboard_states enable row level security;
+
+drop policy if exists "Users can read their own dashboard state" on public.dashboard_states;
+create policy "Users can read their own dashboard state"
+on public.dashboard_states
+for select
+to authenticated
+using ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can insert their own dashboard state" on public.dashboard_states;
+create policy "Users can insert their own dashboard state"
+on public.dashboard_states
+for insert
+to authenticated
+with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can update their own dashboard state" on public.dashboard_states;
+create policy "Users can update their own dashboard state"
+on public.dashboard_states
+for update
+to authenticated
+using ((select auth.uid()) = user_id)
+with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can delete their own dashboard state" on public.dashboard_states;
+create policy "Users can delete their own dashboard state"
+on public.dashboard_states
+for delete
+to authenticated
+using ((select auth.uid()) = user_id);
 ```
 
-Default username:
+The same SQL is also included in:
 
 ```txt
-<secret>
+supabase/dashboard_states.sql
 ```
 
-Default password:
+## Environment variables
+
+The app needs these variables in Vercel:
 
 ```txt
-<secret>
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
 ```
 
-Change those values before deploying if you want different credentials.
+Use only the Supabase **publishable** key in this frontend app. Never put the service-role key or a secret key in GitHub, Vercel client variables, or browser code.
 
-This is **not real backend security**. Anyone who can inspect the source code can find the credentials. For real secure login, you would need a backend/auth service such as Supabase Auth. Version 1 avoids that complexity on purpose.
+For local development, copy `.env.example` to `.env.local` and fill in the real values.
 
 ## How data is stored
 
-User data is saved in the browser using `localStorage` under this key:
+Main storage:
+
+```txt
+Supabase table: public.dashboard_states
+```
+
+Each user has one row:
+
+```txt
+user_id = Supabase Auth user id
+state = full dashboard state as JSONB
+updated_at = last cloud save time
+```
+
+The app also writes a local browser cache under:
 
 ```txt
 six-month-dashboard:v1
 ```
 
-This means:
-
-- Data stays after refresh.
-- Data is stored only in that browser/device.
-- Data does not automatically sync between devices.
-- Clearing browser data can delete the dashboard data.
-- Private/incognito browsing may clear data when the session ends.
-
-Use **Settings → Export JSON backup** regularly.
+This cache helps the app keep a local backup, but Supabase is the main cross-device source of truth after login.
 
 ## Run locally
 
@@ -86,6 +131,14 @@ Install Node.js first. Then open a terminal in the project folder and run:
 
 ```bash
 npm install
+cp .env.example .env.local
+```
+
+Edit `.env.local` and add your real Supabase values.
+
+Then run:
+
+```bash
 npm run dev
 ```
 
@@ -95,12 +148,7 @@ Open the local URL Vite prints, usually:
 http://localhost:5173
 ```
 
-Login with:
-
-```txt
-username: <secret>
-password: <secret>
-```
+Sign in with the Supabase user you created in Authentication → Users.
 
 ## Build locally
 
@@ -115,15 +163,15 @@ npm run preview
 2. Extract this project ZIP.
 3. Upload the project files to the repository.
 4. Make sure `package.json` is at the top level of the repository.
-5. Do **not** upload `node_modules`, `dist`, `.vercel`, `.env`, or `tsconfig.tsbuildinfo`.
-6. This ZIP intentionally does not include `package-lock.json`; Vercel can install from `package.json`.
-7. Commit the files.
+5. Do **not** upload `node_modules`, `dist`, `.vercel`, `.env`, `.env.local`, `package-lock.json`, or `tsconfig.tsbuildinfo`.
+6. Commit the files.
 
 Your repository should look like this:
 
 ```txt
 repository/
 ├── src/
+├── supabase/
 ├── index.html
 ├── package.json
 ├── tsconfig.json
@@ -148,7 +196,14 @@ repository/
 2. Click **New Project**.
 3. Import your GitHub repository.
 4. Vercel should detect Vite automatically.
-5. Use these settings if Vercel asks:
+5. In Project Settings → Environment Variables, add:
+
+```txt
+VITE_SUPABASE_URL
+VITE_SUPABASE_PUBLISHABLE_KEY
+```
+
+6. Use these settings if Vercel asks:
 
 Build command:
 
@@ -168,10 +223,9 @@ Output directory:
 dist
 ```
 
-6. Deploy.
+7. Deploy or redeploy without build cache.
 
 The included `vercel.json` rewrites all routes to `index.html`, which prevents refresh errors on client-side routes such as `/tracker` or `/settings`.
-
 
 ## Project calendar logic
 
@@ -183,6 +237,14 @@ The app assumes the six-month project starts on **June 1, 2026**:
 - Month 4: September 2026
 - Month 5: October 2026
 - Month 6: November 2026
+
+Corrected schedule assumptions used by the workout logic:
+
+- June 1–19: school schedule.
+- June 20–August 31: summer schedule.
+- The old summer university schedule continues until September 10.
+- School is assumed to restart in September, with exact hours unknown.
+- The new university semester is assumed to begin October 25 and continue into January, with probably three evening course blocks.
 
 Date-aware workout navigation and upcoming workout logic are in:
 
@@ -242,28 +304,12 @@ Theme variables are in:
 src/styles.css
 ```
 
-The Settings page allows changing:
+The Settings page allows changing theme mode and accent color without editing code.
 
-- Light / dark / system theme
-- Accent color
-- Dashboard name
+## Safety and privacy notes
 
-## Safe use notes
-
-This app is a tracker and planning aid. It is not medical advice.
-
-For a teenager:
-
-- Do not use it for extreme dieting.
-- Do not use it for rapid weight loss.
-- Do not train through pain.
-- Stop exercise and involve an adult/doctor for strong chest tightness, chest pain, dizziness, fainting, wheezing, or unusual breathing symptoms.
-- Keep nutrition focused on consistency, energy, growth, and recovery.
-
-## Suggested build order for future improvements
-
-1. Use this version for 1–2 weeks.
-2. Review which habits are actually useful.
-3. Add better charts only after the tracker data is stable.
-4. Add IndexedDB only if localStorage becomes too small.
-5. Add Supabase only if real login or cross-device sync becomes necessary.
+- Supabase Auth is real authentication, but Row Level Security policies are what protect dashboard data.
+- Do not disable RLS on `dashboard_states`.
+- Do not use the Supabase service-role key in this app.
+- Keep a JSON backup before major edits.
+- This is a personal dashboard, not a medical app.

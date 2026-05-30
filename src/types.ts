@@ -55,4 +55,6 @@ export type AppStateAction =
   | { type: 'TOGGLE_WORKOUT'; key: string }
   | { type: 'MARK_WORKOUT_COMPLETED'; date: string; workoutId: string }
   | { type: 'RESET_TRACKING_DATA' }
-  | { type: 'IMPORT_STATE'; state: AppState };
+  | { type: 'IMPORT_STATE'; state: AppState }
+  | { type: 'HYDRATE_STATE'; state: AppState };
+
