@@ -17,15 +17,6 @@ export function NutritionPage() {
         <p className="mt-2 max-w-3xl text-muted">A flexible meal system based on familiar foods. No calorie-counting, no aggressive bulking/cutting, and no forcing a perfect diet.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        {nutritionPrinciples.map((item) => (
-          <Card key={item.title} className="p-4">
-            <h2 className="font-semibold text-main">{item.title}</h2>
-            <p className="mt-2 text-sm text-muted">{item.body}</p>
-          </Card>
-        ))}
-      </div>
-
       <Card>
         <CardTitle title="Meal options" subtitle="Choose realistic meals. The best plan is the one that actually happens during school/university weeks." />
         <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
@@ -48,6 +39,15 @@ export function NutritionPage() {
           ))}
         </div>
       </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        {nutritionPrinciples.map((item) => (
+          <Card key={item.title} className="p-4">
+            <h2 className="font-semibold text-main">{item.title}</h2>
+            <p className="mt-2 text-sm text-muted">{item.body}</p>
+          </Card>
+        ))}
+      </div>
 
       <Card>
         <CardTitle title="Example full days" subtitle="Use these as patterns, not strict rules." />

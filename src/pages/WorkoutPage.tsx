@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card, CardTitle } from '../components/ui/Card';
-import { getWorkoutTemplate, monthPlans, progressionRules, safetyPrinciples, workoutTemplates } from '../data/workoutPlan';
+import { getWorkoutTemplate, monthPlans, progressionRules, safetyPrinciples } from '../data/workoutPlan';
 import { useAppState } from '../context/AppStateContext';
 import { formatLongDate, todayKey } from '../lib/dates';
+import { getAllWeeklyDays, getCurrentMonthPlan, getProjectMonthNumber, getTrainingDayForDate } from '../lib/projectSchedule';
 
 function priorityClasses(priority: string) {
   if (priority === 'Main') return 'accent-soft accent-text';
@@ -13,16 +15,55 @@ function priorityClasses(priority: string) {
 
 export function WorkoutPage() {
   const { state, dispatch } = useAppState();
-  const [selectedMonth, setSelectedMonth] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentMonth = getProjectMonthNumber();
+  const currentPlan = getCurrentMonthPlan();
+  const queryMonth = Number(searchParams.get('month'));
+  const selectedMonth = Number.isFinite(queryMonth) && queryMonth >= 1 && queryMonth <= 6 ? queryMonth : currentMonth;
   const selectedPlan = monthPlans.find((plan) => plan.month === selectedMonth) ?? monthPlans[0];
+  const highlightedWorkout = searchParams.get('workout');
+  const todayTraining = getTrainingDayForDate(new Date());
+  const today = todayKey();
+  const todayWorkoutDone = Boolean(state.entries[today]?.habits?.['habit-workout']);
+
+  const weeklyTables = useMemo(() => [
+    { label: `${selectedPlan.calendarMonth} main division`, subtitle: selectedPlan.bestWeeklySplit, weeklyDays: selectedPlan.weeklyDays },
+    ...(selectedPlan.weeklyAlternates ?? []),
+  ], [selectedPlan]);
 
   const workoutsInMonth = useMemo(() => {
-    const ids = new Set(selectedPlan.weeklyDays.map((day) => day.workoutId).filter(Boolean));
-    return workoutTemplates.filter((workout) => ids.has(workout.id));
+    const ids = new Set(getAllWeeklyDays(selectedPlan).map((day) => day.workoutId).filter(Boolean));
+    return [...ids].map((id) => getWorkoutTemplate(id)).filter(Boolean) as NonNullable<ReturnType<typeof getWorkoutTemplate>>[];
   }, [selectedPlan]);
 
-  function workoutKey(workoutId: string) {
-    return `${todayKey()}:${workoutId}`;
+  useEffect(() => {
+    if (!highlightedWorkout) return;
+    window.setTimeout(() => {
+      document.getElementById(`workout-${highlightedWorkout}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  }, [highlightedWorkout, selectedMonth]);
+
+  function selectMonth(month: number) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('month', String(month));
+      next.delete('workout');
+      return next;
+    });
+  }
+
+  function jumpToWorkout(workoutId: string) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('month', String(selectedPlan.month));
+      next.set('workout', workoutId);
+      return next;
+    });
+    window.setTimeout(() => document.getElementById(`workout-${workoutId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 20);
+  }
+
+  function markTodayWorkout(workoutId: string) {
+    dispatch({ type: 'MARK_WORKOUT_COMPLETED', date: today, workoutId });
   }
 
   return (
@@ -33,27 +74,27 @@ export function WorkoutPage() {
             <p className="text-sm font-semibold accent-text">Teen-safe calisthenics · no gym · realistic schedule</p>
             <h1 className="mt-2 text-3xl font-bold text-main md:text-4xl">Workout Plan</h1>
             <p className="mt-3 max-w-3xl text-muted">
-              A structured 6-month training system based on full-body strength, posture, skill foundations, recovery, and consistency. It is strict about what matters, but flexible enough for school and university pressure.
+              A structured 6-month training system based on full-body strength, posture, skill foundations, recovery, and consistency. The month tabs follow the real project calendar: Month 1 is June, Month 2 is July, Month 3 is August, Month 4 is September, Month 5 is October, and Month 6 is November.
             </p>
           </div>
           <div className="rounded-3xl app-surface-soft p-4 text-sm text-muted lg:w-80">
             <p className="font-semibold text-main">Today</p>
             <p>{formatLongDate(new Date())}</p>
-            <p className="mt-2">Use the monthly tab below, then follow the exact weekly division. If school gets heavy, use the recovery/backup notes instead of quitting.</p>
+            <p className="mt-2">Current phase: <strong className="text-main">Month {currentPlan.month} · {currentPlan.calendarMonth}</strong>.</p>
           </div>
         </div>
       </div>
 
       <Card>
-        <CardTitle title="Choose the current month / phase" subtitle="Each month has its own goal, best weekly split, exact day-by-day structure, tracking focus, and safety rules." />
+        <CardTitle title="Choose the month / phase" subtitle="The current month is opened automatically from the project start date, but you can review any phase." />
         <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
           {monthPlans.map((plan) => (
             <button
               key={plan.month}
-              onClick={() => setSelectedMonth(plan.month)}
+              onClick={() => selectMonth(plan.month)}
               className={`focus-ring rounded-2xl border p-3 text-left transition ${plan.month === selectedMonth ? 'border-transparent accent-bg text-white shadow-lg' : 'border-soft app-surface-soft text-main hover-surface-soft'}`}
             >
-              <span className="text-xs opacity-80">Month {plan.month}</span>
+              <span className="text-xs opacity-80">Month {plan.month} · {plan.calendarMonth}</span>
               <span className="mt-1 block font-semibold leading-tight">{plan.title}</span>
             </button>
           ))}
@@ -63,7 +104,7 @@ export function WorkoutPage() {
       <Card>
         <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <div>
-            <p className="text-sm font-semibold accent-text">Month {selectedPlan.month}</p>
+            <p className="text-sm font-semibold accent-text">Month {selectedPlan.month} · {selectedPlan.calendarMonth}</p>
             <h2 className="mt-1 text-2xl font-bold text-main md:text-3xl">{selectedPlan.title}</h2>
             <p className="mt-3 text-muted leading-7">{selectedPlan.generalExplanation}</p>
             <div className="mt-5 rounded-3xl app-surface-soft p-5">
@@ -88,39 +129,41 @@ export function WorkoutPage() {
         </div>
       </Card>
 
-      <Card>
-        <CardTitle title={`Month ${selectedPlan.month}: exact weekly division`} subtitle="These are the recommended workout days based on the intake schedule. Main days are the priority. Optional days only happen if sleep, school, and recovery are okay." />
-        <div className="overflow-x-auto rounded-3xl border border-soft">
-          <table className="w-full min-w-[860px] border-collapse text-sm">
-            <thead>
-              <tr className="app-surface-soft text-left">
-                <th className="px-4 py-3 font-semibold text-main">Day</th>
-                <th className="px-4 py-3 font-semibold text-main">Priority</th>
-                <th className="px-4 py-3 font-semibold text-main">Best timing</th>
-                <th className="px-4 py-3 font-semibold text-main">Exactly what to do</th>
-                <th className="px-4 py-3 font-semibold text-main">Why this day</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selectedPlan.weeklyDays.map((day) => {
-                const workout = getWorkoutTemplate(day.workoutId);
-                return (
-                  <tr key={`${selectedPlan.month}-${day.day}`} className="border-t border-soft align-top">
-                    <td className="px-4 py-4 font-semibold text-main">{day.day}</td>
-                    <td className="px-4 py-4"><span className={`rounded-full px-3 py-1 text-xs font-semibold ${priorityClasses(day.priority)}`}>{day.priority}</span></td>
-                    <td className="px-4 py-4 text-muted">{day.timing}</td>
-                    <td className="px-4 py-4 text-muted">
-                      {workout ? <p className="mb-1 font-semibold text-main">{workout.name}</p> : null}
-                      <p>{day.exactTask}</p>
-                    </td>
-                    <td className="px-4 py-4 text-muted">{day.whyThisDay}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      {weeklyTables.map((table) => (
+        <Card key={table.label}>
+          <CardTitle title={table.label} subtitle={table.subtitle} />
+          <div className="overflow-x-auto rounded-3xl border border-soft">
+            <table className="w-full min-w-[860px] border-collapse text-sm">
+              <thead>
+                <tr className="app-surface-soft text-left">
+                  <th className="px-4 py-3 font-semibold text-main">Day</th>
+                  <th className="px-4 py-3 font-semibold text-main">Priority</th>
+                  <th className="px-4 py-3 font-semibold text-main">Best timing</th>
+                  <th className="px-4 py-3 font-semibold text-main">Exactly what to do</th>
+                  <th className="px-4 py-3 font-semibold text-main">Why this day</th>
+                </tr>
+              </thead>
+              <tbody>
+                {table.weeklyDays.map((day) => {
+                  const workout = getWorkoutTemplate(day.workoutId);
+                  return (
+                    <tr key={`${table.label}-${day.day}-${day.workoutId ?? 'none'}`} className="border-t border-soft align-top">
+                      <td className="px-4 py-4 font-semibold text-main">{day.day}</td>
+                      <td className="px-4 py-4"><span className={`rounded-full px-3 py-1 text-xs font-semibold ${priorityClasses(day.priority)}`}>{day.priority}</span></td>
+                      <td className="px-4 py-4 text-muted">{day.timing}</td>
+                      <td className="px-4 py-4 text-muted">
+                        {workout ? <button type="button" onClick={() => jumpToWorkout(workout.id)} className="mb-1 text-left font-semibold accent-text hover:underline">{workout.name}</button> : null}
+                        <p>{day.exactTask}</p>
+                      </td>
+                      <td className="px-4 py-4 text-muted">{day.whyThisDay}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ))}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card>
@@ -140,13 +183,12 @@ export function WorkoutPage() {
       </div>
 
       <Card>
-        <CardTitle title="Workout templates used this month" subtitle="Complete the templates shown in the weekly division above. The completion buttons save only today’s completion for that workout." />
+        <CardTitle title="Workout templates used this month" subtitle="Only the workout scheduled for today shows a completion button. Marking it also marks the Workout habit in the calendar tracker." />
         <div className="space-y-5">
           {workoutsInMonth.map((workout) => {
-            const key = workoutKey(workout.id);
-            const completed = Boolean(state.workoutCompletions[key]?.completed);
+            const isTodaysWorkout = selectedPlan.month === currentPlan.month && todayTraining?.workout.id === workout.id;
             return (
-              <article key={workout.id} className="rounded-[1.75rem] border border-soft app-surface-soft p-5">
+              <article id={`workout-${workout.id}`} key={workout.id} className={`scroll-mt-24 rounded-[1.75rem] border p-5 transition ${highlightedWorkout === workout.id ? 'border-[rgb(var(--accent))] app-surface-soft shadow-xl' : 'border-soft app-surface-soft'}`}>
                 <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -156,9 +198,11 @@ export function WorkoutPage() {
                     <p className="mt-2 max-w-4xl text-sm leading-6 text-muted">{workout.goal}</p>
                     <p className="mt-2 text-xs text-muted">{workout.dayHint}</p>
                   </div>
-                  <Button variant={completed ? 'secondary' : 'primary'} onClick={() => dispatch({ type: 'TOGGLE_WORKOUT', key })}>
-                    {completed ? 'Completed today ✓' : 'Mark completed today'}
-                  </Button>
+                  {isTodaysWorkout ? (
+                    <Button variant={todayWorkoutDone ? 'secondary' : 'primary'} disabled={todayWorkoutDone} onClick={() => markTodayWorkout(workout.id)}>
+                      {todayWorkoutDone ? 'Completed today ✓' : 'Mark completed today'}
+                    </Button>
+                  ) : null}
                 </div>
 
                 <div className="mt-5 grid gap-4 lg:grid-cols-2">

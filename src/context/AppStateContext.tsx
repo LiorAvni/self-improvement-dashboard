@@ -42,8 +42,8 @@ function reducer(state: AppState, action: AppStateAction): AppState {
       const habit: Habit = {
         id: makeId('habit'),
         name: action.name.trim(),
-        description: action.description.trim() || 'Custom habit',
-        category: action.category,
+        description: action.description?.trim() || '',
+        category: action.category ?? 'lifestyle',
         isDefault: false,
         createdAt: new Date().toISOString(),
       };
@@ -74,6 +74,25 @@ function reducer(state: AppState, action: AppStateAction): AppState {
             completed: !existing?.completed,
             completedAt: !existing?.completed ? new Date().toISOString() : undefined,
           },
+        },
+      });
+    }
+    case 'MARK_WORKOUT_COMPLETED': {
+      if (isFutureDateKey(action.date)) return state;
+      const existingEntry = state.entries[action.date] ?? { habits: {} };
+      const key = `${action.date}:${action.workoutId}`;
+      return touch({
+        ...state,
+        entries: {
+          ...state.entries,
+          [action.date]: {
+            ...existingEntry,
+            habits: { ...existingEntry.habits, 'habit-workout': true },
+          },
+        },
+        workoutCompletions: {
+          ...state.workoutCompletions,
+          [key]: { completed: true, completedAt: new Date().toISOString() },
         },
       });
     }

@@ -1,7 +1,23 @@
 import type { AppState } from '../types';
-import { createDefaultState } from '../data/defaultState';
+import { createDefaultState, defaultHabits } from '../data/defaultState';
 
 export const STORAGE_KEY = 'six-month-dashboard:v1';
+
+function normalizeState(value: AppState): AppState {
+  const base = createDefaultState();
+  const defaultIds = new Set(defaultHabits.map((habit) => habit.id));
+  const customHabits = (value.habits ?? []).filter((habit) => !habit.isDefault && !defaultIds.has(habit.id));
+
+  return {
+    ...base,
+    ...value,
+    settings: { ...base.settings, ...value.settings },
+    habits: [...defaultHabits, ...customHabits],
+    entries: value.entries ?? {},
+    workoutCompletions: value.workoutCompletions ?? {},
+    quickNotes: typeof value.quickNotes === 'string' ? value.quickNotes : base.quickNotes,
+  };
+}
 
 export function loadState(): AppState {
   try {
@@ -9,7 +25,7 @@ export function loadState(): AppState {
     if (!raw) return createDefaultState();
     const parsed = JSON.parse(raw) as AppState;
     if (parsed.schemaVersion !== 1) return createDefaultState();
-    return parsed;
+    return normalizeState(parsed);
   } catch (error) {
     console.warn('Could not load saved dashboard state. Using defaults.', error);
     return createDefaultState();
@@ -31,7 +47,7 @@ export function validateImportedState(value: unknown): AppState {
   if (!Array.isArray(maybe.habits)) throw new Error('Backup is missing habits.');
   if (!maybe.settings || typeof maybe.settings !== 'object') throw new Error('Backup is missing settings.');
   if (!maybe.entries || typeof maybe.entries !== 'object') throw new Error('Backup is missing entries.');
-  return maybe as AppState;
+  return normalizeState(maybe as AppState);
 }
 
 export function downloadBackup(state: AppState): void {

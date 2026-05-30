@@ -1,13 +1,12 @@
-import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardTitle } from '../components/ui/Card';
 import { Textarea } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { StatCard } from '../components/StatCard';
 import { useAppState } from '../context/AppStateContext';
-import { workoutTemplates } from '../data/workoutPlan';
 import { activeHabits, bestHabitStreak, categoryCompletionToday, completedDaysInCurrentWeek, completionForDate, monthCompletion, weekCompletion, workoutCountThisWeek } from '../lib/stats';
 import { formatLongDate, todayKey } from '../lib/dates';
+import { findUpcomingWorkout, workoutPageLinkForCurrentDate } from '../lib/projectSchedule';
 
 export function DashboardPage() {
   const { state, dispatch } = useAppState();
@@ -18,23 +17,18 @@ export function DashboardPage() {
   const streak = bestHabitStreak(state);
   const workouts = workoutCountThisWeek(state);
   const perfectDays = completedDaysInCurrentWeek(state);
-
-  const upcomingWorkout = useMemo(() => {
-    const day = new Date().getDay();
-    if (day === 1) return workoutTemplates.find((w) => w.id === 'upper-push-core') ?? workoutTemplates[0];
-    if (day === 4) return workoutTemplates.find((w) => w.id === 'upper-pull-posture') ?? workoutTemplates[0];
-    if (day === 6) return workoutTemplates.find((w) => w.id === 'legs-core-athletic') ?? workoutTemplates[0];
-    return workoutTemplates.find((w) => w.id === 'skill-recovery-conditioning') ?? workoutTemplates[0];
-  }, []);
-
+  const upcomingWorkout = findUpcomingWorkout(state);
+  const workoutLink = workoutPageLinkForCurrentDate(state);
   const habits = activeHabits(state);
-  const todayEntry = state.entries[today];
 
   const summary = todayStats.percent >= 80
     ? 'Strong day. Keep the finish simple and protect sleep.'
     : todayStats.percent >= 45
       ? 'Good enough progress. Finish one more important habit if possible.'
       : 'No panic. Pick the smallest useful win: phone away, dinner, or one focused block.';
+
+  const completedToday = habits.filter((habit) => state.entries[today]?.habits?.[habit.id]).map((habit) => habit.name);
+  const remainingToday = habits.filter((habit) => !state.entries[today]?.habits?.[habit.id]).map((habit) => habit.name);
 
   return (
     <div className="space-y-6">
@@ -62,41 +56,46 @@ export function DashboardPage() {
         <StatCard label="Workouts this week" value={`${workouts}`} detail="Target: 3 main sessions, optional 4th" tone={workouts >= 3 ? 'success' : 'neutral'} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Card>
-          <CardTitle title="Today’s habit checklist" subtitle="Fast check-in. Today is the only day you can edit here; weekly planning lives on the Tracker page." />
-          <div className="grid gap-3 sm:grid-cols-2">
-            {habits.map((habit) => {
-              const done = Boolean(todayEntry?.habits?.[habit.id]);
-              return (
-                <button
-                  key={habit.id}
-                  onClick={() => dispatch({ type: 'TOGGLE_HABIT_ENTRY', date: today, habitId: habit.id })}
-                  className={`tracker-cell rounded-3xl border p-4 text-left ${done ? 'border-green-300 bg-green-50 dark:border-green-900 dark:bg-green-950/30' : 'border-soft app-surface-soft'}`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-main">{habit.name}</p>
-                      <p className="mt-1 text-sm leading-5 text-muted">{habit.description}</p>
-                    </div>
-                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl border font-bold ${done ? 'border-green-500 bg-green-500 text-white' : 'border-soft app-surface'}`}>{done ? '✓' : ''}</span>
-                  </div>
-                </button>
-              );
-            })}
+          <CardTitle title="Today at a glance" subtitle="Quick read-only overview. Mark habits on the Tracker page so the calendar remains the source of truth." />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-3xl app-surface-soft p-4">
+              <h3 className="font-semibold text-main">Done today</h3>
+              {completedToday.length ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {completedToday.map((habit) => <span key={habit} className="rounded-full bg-green-100 px-3 py-1 text-sm text-green-700 dark:bg-green-950/40 dark:text-green-200">✓ {habit}</span>)}
+                </div>
+              ) : <p className="mt-3 text-sm text-muted">Nothing marked yet. Start with the smallest useful win.</p>}
+            </div>
+            <div className="rounded-3xl app-surface-soft p-4">
+              <h3 className="font-semibold text-main">Still open</h3>
+              {remainingToday.length ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {remainingToday.slice(0, 8).map((habit) => <span key={habit} className="rounded-full app-surface px-3 py-1 text-sm text-muted">{habit}</span>)}
+                </div>
+              ) : <p className="mt-3 text-sm text-muted">All active habits are marked for today.</p>}
+            </div>
           </div>
+          <Link to="/tracker" className="mt-5 block"><Button variant="secondary">Open tracker</Button></Link>
         </Card>
 
         <div className="space-y-6">
           <Card>
-            <CardTitle title="Upcoming workout" subtitle={upcomingWorkout.dayHint} />
-            <h3 className="text-xl font-bold text-main">{upcomingWorkout.name}</h3>
-            <p className="mt-2 text-sm leading-6 text-muted">{upcomingWorkout.goal}</p>
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-2xl app-surface-soft p-3"><span className="text-muted">This week</span><br /><strong>{workouts} workouts</strong></div>
-              <div className="rounded-2xl app-surface-soft p-3"><span className="text-muted">Duration</span><br /><strong>{upcomingWorkout.duration}</strong></div>
-            </div>
-            <Link to="/workout" className="mt-4 block"><Button className="w-full" variant="secondary">Open workout plan</Button></Link>
+            <CardTitle title="Upcoming workout" subtitle={upcomingWorkout ? `${upcomingWorkout.isToday ? 'Today' : formatLongDate(upcomingWorkout.date)} · Month ${upcomingWorkout.plan.month}: ${upcomingWorkout.plan.calendarMonth}` : 'No planned workout found in the next weeks'} />
+            {upcomingWorkout ? (
+              <>
+                <h3 className="text-xl font-bold text-main">{upcomingWorkout.workout.name}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted">{upcomingWorkout.trainingDay.exactTask}</p>
+                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-2xl app-surface-soft p-3"><span className="text-muted">This week</span><br /><strong>{workouts} workouts</strong></div>
+                  <div className="rounded-2xl app-surface-soft p-3"><span className="text-muted">Duration</span><br /><strong>{upcomingWorkout.workout.duration}</strong></div>
+                </div>
+                <Link to={workoutLink} className="mt-4 block"><Button className="w-full" variant="secondary">Open workout plan</Button></Link>
+              </>
+            ) : (
+              <p className="text-sm text-muted">Open the workout page and review the current month.</p>
+            )}
           </Card>
 
           <Card>

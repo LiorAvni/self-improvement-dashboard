@@ -55,11 +55,8 @@ export function bestHabitStreak(state: AppState): { habitName: string; streak: n
 }
 
 export function workoutCountThisWeek(state: AppState): number {
-  const weekKeys = new Set(getWeekDates(new Date()).map(toDateKey));
-  return Object.entries(state.workoutCompletions).filter(([key, value]) => {
-    const datePart = key.split(':')[0];
-    return weekKeys.has(datePart) && value.completed;
-  }).length;
+  const weekKeys = getWeekDates(new Date()).map(toDateKey).filter((key) => !isFutureDateKey(key));
+  return weekKeys.filter((key) => Boolean(state.entries[key]?.habits?.['habit-workout'])).length;
 }
 
 export function categoryCompletionToday(state: AppState, category: Habit['category']): number {

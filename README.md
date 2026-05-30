@@ -18,12 +18,17 @@ This project is designed to be simple to edit, free to deploy, and easy to uploa
 ## What is included
 
 - Dashboard page with today, weekly, and monthly progress stats
+- Date-aware upcoming workout card that opens the correct month and workout automatically
 - Calendar-style weekly tracker: days as columns and habits as rows
+- Clean tracker table with no habit descriptions/categories in the grid
+- Custom habit/task modal with a dark overlay
 - Automatic current-date highlighting in the tracker
 - Future tracker days are locked and cannot be checked early
 - Default habits and custom habit creation/deletion
-- Expanded workout plan page divided by Month 1 through Month 6
+- Expanded workout plan page divided by Month 1 through Month 6, with Month 1 = June 2026 and Month 3 = August summer schedule
 - Each month includes the best weekly split, exact day-by-day workout division, progression rules, deload rules, tracking focus, and safety notes
+- Workout names in weekly tables jump to the matching workout template
+- Today's workout can be marked complete from the workout page, and it syncs with the Workout checkbox in the tracker
 - Detailed workout templates with warm-up, exercises, sets, reps/time, rest, form cues, regressions, progressions, and stop rules
 - Nutrition plan page with realistic meal options based on familiar foods
 - General info page with lifestyle, sleep, training, tracking, nutrition, and safety principles
@@ -166,6 +171,32 @@ dist
 6. Deploy.
 
 The included `vercel.json` rewrites all routes to `index.html`, which prevents refresh errors on client-side routes such as `/tracker` or `/settings`.
+
+
+## Project calendar logic
+
+The app assumes the six-month project starts on **June 1, 2026**:
+
+- Month 1: June 2026
+- Month 2: July 2026
+- Month 3: August 2026
+- Month 4: September 2026
+- Month 5: October 2026
+- Month 6: November 2026
+
+Date-aware workout navigation and upcoming workout logic are in:
+
+```txt
+src/lib/projectSchedule.ts
+```
+
+The Workout habit uses this default habit ID:
+
+```txt
+habit-workout
+```
+
+Marking the scheduled workout complete on the Workout page also marks the Workout checkbox for today in the Calendar Tracker. Marking or unmarking that checkbox in the tracker changes whether the Workout page shows today as completed.
 
 ## Customize habits
 

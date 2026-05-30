@@ -48,10 +48,11 @@ export type AppStateAction =
   | { type: 'TOGGLE_HABIT_ENTRY'; date: string; habitId: string }
   | { type: 'SET_DAY_NOTE'; date: string; note: string }
   | { type: 'SET_DAY_ENERGY'; date: string; energy?: DayEntry['energy'] }
-  | { type: 'ADD_HABIT'; name: string; description: string; category: HabitCategory }
+  | { type: 'ADD_HABIT'; name: string; description?: string; category?: HabitCategory }
   | { type: 'DELETE_CUSTOM_HABIT'; habitId: string }
   | { type: 'UPDATE_SETTINGS'; settings: Partial<Settings> }
   | { type: 'SET_QUICK_NOTES'; notes: string }
   | { type: 'TOGGLE_WORKOUT'; key: string }
+  | { type: 'MARK_WORKOUT_COMPLETED'; date: string; workoutId: string }
   | { type: 'RESET_TRACKING_DATA' }
   | { type: 'IMPORT_STATE'; state: AppState };

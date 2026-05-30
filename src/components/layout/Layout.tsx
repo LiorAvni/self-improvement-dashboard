@@ -2,19 +2,21 @@ import type React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAppState } from '../../context/AppStateContext';
 import { weekCompletion } from '../../lib/stats';
-
-const navItems = [
-  { to: '/', label: 'Dashboard', icon: '◎' },
-  { to: '/tracker', label: 'Tracker', icon: '✓' },
-  { to: '/workout', label: 'Workout', icon: '◆' },
-  { to: '/nutrition', label: 'Nutrition', icon: '●' },
-  { to: '/info', label: 'Info', icon: 'i' },
-  { to: '/settings', label: 'Settings', icon: '⚙' },
-];
+import { workoutPageLinkForCurrentDate } from '../../lib/projectSchedule';
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { state } = useAppState();
   const week = weekCompletion(state);
+  const workoutLink = workoutPageLinkForCurrentDate(state);
+
+  const navItems = [
+    { to: '/', label: 'Dashboard', icon: '◎', end: true },
+    { to: '/tracker', label: 'Tracker', icon: '✓' },
+    { to: workoutLink, matchPath: '/workout', label: 'Workout', icon: '◆' },
+    { to: '/nutrition', label: 'Nutrition', icon: '●' },
+    { to: '/info', label: 'Info', icon: 'i' },
+    { to: '/settings', label: 'Settings', icon: '⚙' },
+  ];
 
   return (
     <div className="min-h-screen app-bg">
@@ -34,11 +36,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <nav className="space-y-2">
           {navItems.map((item) => (
             <NavLink
-              key={item.to}
+              key={item.label}
               to={item.to}
-              end={item.to === '/'}
+              end={item.end}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${isActive ? 'accent-soft accent-text' : 'text-muted hover-surface-soft hover:text-main'}`
+                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${isActive || (item.matchPath && location.pathname === item.matchPath) ? 'accent-soft accent-text' : 'text-muted hover-surface-soft hover:text-main'}`
               }
             >
               <span className="flex h-7 w-7 items-center justify-center rounded-xl app-surface text-xs font-bold">{item.icon}</span>
@@ -60,11 +62,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <nav className="flex gap-2 overflow-x-auto px-4 pb-3">
             {navItems.map((item) => (
               <NavLink
-                key={item.to}
+                key={item.label}
                 to={item.to}
-                end={item.to === '/'}
+                end={item.end}
                 className={({ isActive }) =>
-                  `shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${isActive ? 'accent-bg text-white' : 'app-surface-soft text-muted'}`
+                  `shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${isActive || (item.matchPath && location.pathname === item.matchPath) ? 'accent-bg text-white' : 'app-surface-soft text-muted'}`
                 }
               >
                 {item.label}
